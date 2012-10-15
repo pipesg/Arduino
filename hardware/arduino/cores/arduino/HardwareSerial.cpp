@@ -67,7 +67,7 @@ void set_tx_buffer3(ring_buffer * buffer) { tx_buffer3 = buffer; }
 
 inline void store_char(unsigned char c, ring_buffer *buffer)
 {
-  unsigned int i = (unsigned int)(buffer->head + 1) % (buffer->buffer_size);
+  const unsigned int i = (unsigned int)(buffer->head + 1) % (buffer->buffer_size);
 
   // if we should be storing the received character into the location
   // just before the tail (meaning that the head would advance to the
@@ -153,23 +153,37 @@ inline void store_char(unsigned char c, ring_buffer *buffer)
   #error SIG_USART3_RECV
 #endif
 
-/* JD temporary disabled
 void serialEventRun(void)
 {
 #ifdef serialEvent_implemented
-  if (Serial.available()) serialEvent();
+  if (rx_buffer != 0) {
+      if (rx_buffer->head != rx_buffer->tail) {
+        serialEvent();
+      }
+  }
 #endif
 #ifdef serialEvent1_implemented
-  if (Serial1.available()) serialEvent1();
+  if (rx_buffer1 != 0) {
+      if (rx_buffer1->head != rx_buffer1->tail) {
+        serialEvent1();
+      }
+  }
 #endif
 #ifdef serialEvent2_implemented
-  if (Serial2.available()) serialEvent2();
+  if (rx_buffer2 != 0) {
+      if (rx_buffer2->head != rx_buffer2->tail) {
+        serialEvent2();
+      }
+  }
 #endif
 #ifdef serialEvent3_implemented
-  if (Serial3.available()) serialEvent3();
+  if (rx_buffer3 != 0) {
+      if (rx_buffer3->head != rx_buffer3->tail) {
+        serialEvent3();
+      }
+  }
 #endif
 }
-*/
 
 
 #if !defined(USART0_UDRE_vect) && defined(USART1_UDRE_vect)
