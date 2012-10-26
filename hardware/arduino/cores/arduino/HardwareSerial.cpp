@@ -129,8 +129,6 @@ inline void store_char(unsigned char c, ring_buffer *buffer)
     unsigned char c = UDR1;
     store_char(c, &rx_buffer1);
   }
-#elif defined(SIG_USART1_RECV)
-  #error SIG_USART1_RECV
 #endif
 
 #if defined(USART2_RX_vect) && defined(UDR2)
@@ -142,8 +140,6 @@ inline void store_char(unsigned char c, ring_buffer *buffer)
     unsigned char c = UDR2;
     store_char(c, &rx_buffer2);
   }
-#elif defined(SIG_USART2_RECV)
-  #error SIG_USART2_RECV
 #endif
 
 #if defined(USART3_RX_vect) && defined(UDR3)
@@ -155,8 +151,6 @@ inline void store_char(unsigned char c, ring_buffer *buffer)
     unsigned char c = UDR3;
     store_char(c, &rx_buffer3);
   }
-#elif defined(SIG_USART3_RECV)
-  #error SIG_USART3_RECV
 #endif
 
 void serialEventRun(void)
