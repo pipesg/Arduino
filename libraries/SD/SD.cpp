@@ -76,7 +76,7 @@ bool getNextPathComponent(char *path, unsigned int *p_offset,
 
     Returns `true` if more components remain.
 
-    Returns `fa/lse` if this is the last component.
+    Returns `false` if this is the last component.
       (This means path ended with 'foo' or 'foo/'.)
 
    */
