@@ -482,7 +482,7 @@ mighty_opt.build.variant=mighty
 
 mighty_644_opt.name=Mighty 644p 16MHz using Optiboot
 mighty_644_opt.upload.protocol=arduino
-mighty_644_opt.upload.maximum_size=130048
+mighty_644_opt.upload.maximum_size=62464
 mighty_644_opt.upload.speed=115200
 mighty_644_opt.bootloader.low_fuses=0xff
 mighty_644_opt.bootloader.high_fuses=0xde
