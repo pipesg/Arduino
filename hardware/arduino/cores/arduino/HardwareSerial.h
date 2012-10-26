@@ -17,6 +17,7 @@
   Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
   Modified 28 September 2010 by Mark Sproul
+  Modified 14 August 2012 by Alarus
 */
 
 #ifndef HardwareSerial_h
@@ -25,6 +26,32 @@
 #include <inttypes.h>
 
 #include "Stream.h"
+
+// Define config for Serial.begin(baud, config);
+#define SERIAL_5N1 0x00
+#define SERIAL_6N1 0x02
+#define SERIAL_7N1 0x04
+#define SERIAL_8N1 0x06
+#define SERIAL_5N2 0x08
+#define SERIAL_6N2 0x0A
+#define SERIAL_7N2 0x0C
+#define SERIAL_8N2 0x0E
+#define SERIAL_5E1 0x20
+#define SERIAL_6E1 0x22
+#define SERIAL_7E1 0x24
+#define SERIAL_8E1 0x26
+#define SERIAL_5E2 0x28
+#define SERIAL_6E2 0x2A
+#define SERIAL_7E2 0x2C
+#define SERIAL_8E2 0x2E
+#define SERIAL_5O1 0x30
+#define SERIAL_6O1 0x32
+#define SERIAL_7O1 0x34
+#define SERIAL_8O1 0x36
+#define SERIAL_5O2 0x38
+#define SERIAL_6O2 0x3A
+#define SERIAL_7O2 0x3C
+#define SERIAL_8O2 0x3E
 
 typedef enum {
 #if defined(UBRRH) || defined(UBRR0H)
@@ -88,26 +115,31 @@ template<SerialPort S,
     volatile uint8_t *_ubrrl;
     volatile uint8_t *_ucsra;
     volatile uint8_t *_ucsrb;
+    volatile uint8_t *_ucsrc;
     volatile uint8_t *_udr;
     uint8_t _rxen;
     uint8_t _txen;
     uint8_t _rxcie;
     uint8_t _udrie;
     uint8_t _u2x;
+    bool transmitting;
     public:
 
     HardwareSerial();
-    void begin(unsigned long);
+    void begin(unsigned long baud, uint8_t config=SERIAL_8N1);
     void end();
     virtual int available(void);
     virtual int peek(void);
     virtual int read(void);
     virtual void flush(void);
     virtual size_t write(uint8_t);
+    inline size_t write(unsigned long n) { return write((uint8_t)n); }
+    inline size_t write(long n) { return write((uint8_t)n); }
+    inline size_t write(unsigned int n) { return write((uint8_t)n); }
+    inline size_t write(int n) { return write((uint8_t)n); }
     using Print::write; // pull in write(str) and write(buf, size) from Print
     operator bool();
     };
-
 
 template <SerialPort serialPort, int RX_SERIAL_BUFFER_SIZE, int TX_SERIAL_BUFFER_SIZE> 
 HardwareSerial<serialPort, RX_SERIAL_BUFFER_SIZE, TX_SERIAL_BUFFER_SIZE>
@@ -125,6 +157,7 @@ HardwareSerial<serialPort, RX_SERIAL_BUFFER_SIZE, TX_SERIAL_BUFFER_SIZE>
         _ubrrl = &UBRRL;
         _ucsra = &UCSRA;
         _ucsrb = &UCSRB;
+        _ucsrc = &UCSRC;
         _udr = &UDR;
         _rxen = RXEN;
         _txen = TXEN;
@@ -136,6 +169,7 @@ HardwareSerial<serialPort, RX_SERIAL_BUFFER_SIZE, TX_SERIAL_BUFFER_SIZE>
         _ubrrl = &UBRR0L;
         _ucsra = &UCSR0A;
         _ucsrb = &UCSR0B;
+        _ucsrc = &UCSR0C;
         _udr = &UDR0;
         _rxen = RXEN0;
         _txen = TXEN0;
@@ -153,6 +187,7 @@ HardwareSerial<serialPort, RX_SERIAL_BUFFER_SIZE, TX_SERIAL_BUFFER_SIZE>
         _ubrrl = &UBRR1L;
         _ucsra = &UCSR1A;
         _ucsrb = &UCSR1B;
+        _ucsrc = &UCSR1C;
         _udr = &UDR1;
         _rxen = RXEN1;
         _txen = TXEN1;
@@ -169,6 +204,7 @@ HardwareSerial<serialPort, RX_SERIAL_BUFFER_SIZE, TX_SERIAL_BUFFER_SIZE>
         _ubrrl = &UBRR2L;
         _ucsra = &UCSR2A;
         _ucsrb = &UCSR2B;
+        _ucsrc = &UCSR2C;
         _udr = &UDR2;
         _rxen = RXEN2;
         _txen = TXEN2;
@@ -185,6 +221,7 @@ HardwareSerial<serialPort, RX_SERIAL_BUFFER_SIZE, TX_SERIAL_BUFFER_SIZE>
         _ubrrl = &UBRR3L;
         _ucsra = &UCSR3A;
         _ucsrb = &UCSR3B;
+        _ucsrc = &UCSR3C;
         _udr = &UDR3;
         _rxen = RXEN3;
         _txen = TXEN3;
@@ -201,7 +238,7 @@ HardwareSerial<serialPort, RX_SERIAL_BUFFER_SIZE, TX_SERIAL_BUFFER_SIZE>
 template <SerialPort serialPort, int RX_SERIAL_BUFFER_SIZE, int TX_SERIAL_BUFFER_SIZE> 
 void
 HardwareSerial<serialPort, RX_SERIAL_BUFFER_SIZE, TX_SERIAL_BUFFER_SIZE>
-::begin(unsigned long baud)
+::begin(unsigned long baud, uint8_t config)
 {
     uint16_t baud_setting;
     bool use_u2x = true;
@@ -235,14 +272,27 @@ HardwareSerial<serialPort, RX_SERIAL_BUFFER_SIZE, TX_SERIAL_BUFFER_SIZE>
     *_ubrrh = baud_setting >> 8;
     *_ubrrl = baud_setting;
 
+   //set the data bits, parity, and stop bits
+#if defined(__AVR_ATmega8__)
+   config |= 0x80; // select UCSRC register (shared with UBRRH)
+#endif
+   *_ucsrc = config;
+
+    //set number of data bits
+    current_config = *_ucsrc;
+    current_config |= config;
+    *_ucsrc = current_config;
+
     if (RX_SERIAL_BUFFER_SIZE > 0) {
         *_ucsrb |= _BV(_rxen);
         *_ucsrb |= _BV(_rxcie); // enable rx complete interrupt
     }
     if (TX_SERIAL_BUFFER_SIZE > 0) {
         *_ucsrb |= _BV(_txen);
-        *_ucsrb &= ~(_BV(_udrie)); // disable tx empty buffer interrupt
+        *_ucsrb &= ~(_BV(_udrie)); // enable tx empty buffer interrupt
     }
+
+    transmitting = false;
 }
 template <SerialPort serialPort, int RX_SERIAL_BUFFER_SIZE, int TX_SERIAL_BUFFER_SIZE> 
 void
@@ -312,8 +362,9 @@ void
 HardwareSerial<serialPort, RX_SERIAL_BUFFER_SIZE, TX_SERIAL_BUFFER_SIZE>
 ::flush()
 {
-  while (_tx_buffer.head != _tx_buffer.tail)
-    ;
+  // UDR is kept full while the buffer is not empty, so TXC triggers when EMPTY && SENT
+  while (transmitting && ! (*_ucsra & _BV(TXC0)));
+  transmitting = false;
 }
 
 template <SerialPort serialPort, int RX_SERIAL_BUFFER_SIZE, int TX_SERIAL_BUFFER_SIZE> 
@@ -334,6 +385,9 @@ HardwareSerial<serialPort, RX_SERIAL_BUFFER_SIZE, TX_SERIAL_BUFFER_SIZE>
       _tx_buffer.head = i;
       
       *_ucsrb |= _BV(_udrie);
+      // clear the TXC bit -- "can be cleared by writing a one to its bit location"
+      transmitting = true;
+      sbi(*_ucsra, TXC0);
   }
   return 1;
 }
@@ -343,6 +397,23 @@ HardwareSerial<serialPort, RX_SERIAL_BUFFER_SIZE, TX_SERIAL_BUFFER_SIZE>
 ::operator bool() {
 	return true;
 }
+
+/*
+ * on ATmega8, the uart and its bits are not numbered, so there is no "TXC0"
+ * definition.  It is slightly cleaner to define this here instead of having
+ * conditional code in the cpp module.
+ */
+#if !defined(TXC0)
+#if defined(TXC)
+#define TXC0 TXC
+#elif defined(TXC1)
+// Some devices have uart1 but no uart0
+#define TXC0 TXC1
+#else
+#error TXC0 not definable in HardwareSerial.h
+#endif
+#endif
+
 
 extern void serialEventRun(void) __attribute__((weak));
 

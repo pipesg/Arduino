@@ -18,6 +18,7 @@
   
   Modified 23 November 2006 by David A. Mellis
   Modified 28 September 2010 by Mark Sproul
+  Modified 14 August 2012 by Alarus
 */
 
 #include <stdlib.h>
@@ -103,13 +104,22 @@ inline void store_char(unsigned char c, ring_buffer *buffer)
 #endif
   {
   #if defined(UDR0)
-    unsigned char c  =  UDR0;
+    if (bit_is_clear(UCSR0A, UPE0)) {
+      unsigned char c = UDR0;
+      store_char(c, rx_buffer);
+    } else {
+      unsigned char c = UDR0;
+    };
   #elif defined(UDR)
-    unsigned char c  =  UDR;
+    if (bit_is_clear(UCSRA, PE)) {
+      unsigned char c = UDR;
+      store_char(c, rx_buffer);
+    } else {
+      unsigned char c = UDR;
+    };
   #else
     #error UDR not defined
   #endif
-    store_char(c, rx_buffer);
   }
 #endif
 #endif
@@ -120,8 +130,12 @@ inline void store_char(unsigned char c, ring_buffer *buffer)
   #define serialEvent1_implemented
   SIGNAL(USART1_RX_vect)
   {
-    unsigned char c = UDR1;
-    store_char(c, rx_buffer1);
+    if (bit_is_clear(UCSR1A, UPE1)) {
+      unsigned char c = UDR1;
+      store_char(c, rx_buffer1);
+    } else {
+      unsigned char c = UDR1;
+    };
   }
 #elif defined(SIG_USART1_RECV)
   #error SIG_USART1_RECV
@@ -133,8 +147,12 @@ inline void store_char(unsigned char c, ring_buffer *buffer)
   #define serialEvent2_implemented
   SIGNAL(USART2_RX_vect)
   {
-    unsigned char c = UDR2;
-    store_char(c, rx_buffer2);
+    if (bit_is_clear(UCSR2A, UPE2)) {
+      unsigned char c = UDR2;
+      store_char(c, rx_buffer2);
+    } else {
+      unsigned char c = UDR2;
+    };
   }
 #elif defined(SIG_USART2_RECV)
   #error SIG_USART2_RECV
@@ -146,8 +164,12 @@ inline void store_char(unsigned char c, ring_buffer *buffer)
   #define serialEvent3_implemented
   SIGNAL(USART3_RX_vect)
   {
-    unsigned char c = UDR3;
-    store_char(c, rx_buffer3);
+    if (bit_is_clear(UCSR3A, UPE3)) {
+      unsigned char c = UDR3;
+      store_char(c, rx_buffer3);
+    } else {
+      unsigned char c = UDR3;
+    };
   }
 #elif defined(SIG_USART3_RECV)
   #error SIG_USART3_RECV

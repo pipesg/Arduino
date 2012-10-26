@@ -603,7 +603,7 @@ ISR(USB_GEN_vect)
 	{
 #ifdef CDC_ENABLED
 		USB_Flush(CDC_TX);				// Send a tx frame if found
-		while (USB_Available(CDC_RX))	// Handle received bytes (if any)
+		if (USB_Available(CDC_RX))	// Handle received bytes (if any)
 			Serial.accept();
 #endif
 		
@@ -638,7 +638,11 @@ void USBDevice_::attach()
 	_usbConfiguration = 0;
 	UHWCON = 0x01;						// power internal reg
 	USBCON = (1<<USBE)|(1<<FRZCLK);		// clock frozen, usb enabled
+#if F_CPU == 16000000UL
 	PLLCSR = 0x12;						// Need 16 MHz xtal
+#elif F_CPU == 8000000UL
+	PLLCSR = 0x02;						// Need 8 MHz xtal
+#endif
 	while (!(PLLCSR & (1<<PLOCK)))		// wait for lock pll
 		;
 
