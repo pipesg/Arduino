@@ -76,7 +76,7 @@ bool getNextPathComponent(char *path, unsigned int *p_offset,
 
     Returns `true` if more components remain.
 
-    Returns `false` if this is the last component.
+    Returns `fa/lse` if this is the last component.
       (This means path ended with 'foo' or 'foo/'.)
 
    */
@@ -112,7 +112,6 @@ bool getNextPathComponent(char *path, unsigned int *p_offset,
 
   return (path[offset] != '\0');
 }
-
 
 
 boolean walkPath(char *filepath, SdFile& parentDir,
@@ -316,6 +315,18 @@ boolean callback_remove(SdFile& parentDir, char *filePathComponent,
   return true;
 }
 
+static const char * priv_new_name = 0;
+
+boolean callback_rename(SdFile& parentDir, char *filePathComponent, 
+			boolean isLastComponent, void *object) {
+  if (isLastComponent) {
+    SdFile f;
+    if (!f.open(parentDir, filePathComponent, O_READ)) return false;
+    return f.rename(&parentDir, priv_new_name);
+  }
+  return true;
+}
+
 boolean callback_rmdir(SdFile& parentDir, char *filePathComponent, 
 			boolean isLastComponent, void *object) {
   if (isLastComponent) {
@@ -344,8 +355,6 @@ boolean SDClass::begin(uint8_t csPin) {
          volume.init(card) &&
          root.openRoot(volume);
 }
-
-
 
 // this little helper is used to traverse paths
 SdFile SDClass::getParentDir(const char *filepath, int *index) {
@@ -556,6 +565,11 @@ boolean SDClass::rmdir(char *filepath) {
   
    */
   return walkPath(filepath, root, callback_rmdir);
+}
+
+boolean SDClass::rename(char * old_path, const char * new_name) {
+  priv_new_name = new_name;
+  return walkPath(old_path, root, callback_rename);
 }
 
 boolean SDClass::remove(char *filepath) {

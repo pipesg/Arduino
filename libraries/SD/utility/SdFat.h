@@ -27,6 +27,7 @@
 #include "Sd2Card.h"
 #include "FatStructs.h"
 #include "Print.h"
+#include "Stream.h"
 //------------------------------------------------------------------------------
 /**
  * Allow use of deprecated functions if non-zero
@@ -218,16 +219,16 @@ class SdFile : public Print {
   uint8_t isRoot(void) const {
     return type_ == FAT_FILE_TYPE_ROOT16 || type_ == FAT_FILE_TYPE_ROOT32;
   }
-  void ls(uint8_t flags = 0, uint8_t indent = 0);
+  void ls(Stream & ser, uint8_t flags = 0, uint8_t indent = 0);
   uint8_t makeDir(SdFile* dir, const char* dirName);
   uint8_t open(SdFile* dirFile, uint16_t index, uint8_t oflag);
   uint8_t open(SdFile* dirFile, const char* fileName, uint8_t oflag);
 
   uint8_t openRoot(SdVolume* vol);
-  static void printDirName(const dir_t& dir, uint8_t width);
-  static void printFatDate(uint16_t fatDate);
-  static void printFatTime(uint16_t fatTime);
-  static void printTwoDigits(uint8_t v);
+  static void printDirName(Stream &ser, const dir_t& dir, uint8_t width);
+  static void printFatDate(Stream &ser, uint16_t fatDate);
+  static void printFatTime(Stream &ser, uint16_t fatTime);
+  static void printTwoDigits(Stream &ser, uint8_t v);
   /**
    * Read the next byte from a file.
    *
@@ -252,6 +253,7 @@ class SdFile : public Print {
   uint8_t seekCur(uint32_t pos) {
     return seekSet(curPosition_ + pos);
   }
+  bool rename(SdFile * dirFile, const char* newName);
   /**
    *  Set the files current position to end of file.  Useful to position
    *  a file for append. See seekSet().

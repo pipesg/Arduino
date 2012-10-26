@@ -46,6 +46,7 @@ public:
   operator bool();
   char * name();
 
+
   boolean isDirectory(void);
   File openNextFile(uint8_t mode = O_RDONLY);
   void rewindDirectory(void);
@@ -68,6 +69,8 @@ public:
   // before other methods are used.
   boolean begin(uint8_t csPin = SD_CHIP_SELECT_PIN);
   
+  SdFile & getRoot() { return root; }
+
   // Open the specified file/directory with the supplied mode (e.g. read or
   // write, etc). Returns a File object for interacting with the file.
   // Note that currently only one file can be open at a time.
@@ -84,6 +87,8 @@ public:
   boolean remove(char *filepath);
   
   boolean rmdir(char *filepath);
+
+  boolean rename(char * old_path, const char *new_name);
 
 private:
 
