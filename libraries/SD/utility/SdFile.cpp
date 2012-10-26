@@ -21,8 +21,6 @@
 #include <avr/pgmspace.h>
 #include <Arduino.h>
 
-#define Serial Serial1
-
 //------------------------------------------------------------------------------
 // callback function for date/time
 void (*SdFile::dateTime_)(uint16_t* date, uint16_t* time) = NULL;
