@@ -20,6 +20,9 @@
 #include <SdFat.h>
 #include <avr/pgmspace.h>
 #include <Arduino.h>
+
+#define Serial Serial1
+
 //------------------------------------------------------------------------------
 // callback function for date/time
 void (*SdFile::dateTime_)(uint16_t* date, uint16_t* time) = NULL;
@@ -198,7 +201,7 @@ void SdFile::dirName(const dir_t& dir, char* name) {
  * \param[in] indent Amount of space before file name. Used for recursive
  * list to indicate subdirectory level.
  */
-void SdFile::ls(uint8_t flags, uint8_t indent) {
+void SdFile::ls(Stream &ser, uint8_t flags, uint8_t indent) {
   dir_t* p;
 
   rewind();
@@ -216,26 +219,26 @@ void SdFile::ls(uint8_t flags, uint8_t indent) {
     for (int8_t i = 0; i < indent; i++) Serial.print(' ');
 
     // print file name with possible blank fill
-    printDirName(*p, flags & (LS_DATE | LS_SIZE) ? 14 : 0);
+    printDirName(ser, *p, flags & (LS_DATE | LS_SIZE) ? 14 : 0);
 
     // print modify date/time if requested
     if (flags & LS_DATE) {
-       printFatDate(p->lastWriteDate);
-       Serial.print(' ');
-       printFatTime(p->lastWriteTime);
+       printFatDate(ser, p->lastWriteDate);
+       ser.print(' ');
+       printFatTime(ser, p->lastWriteTime);
     }
     // print size if requested
     if (!DIR_IS_SUBDIR(p) && (flags & LS_SIZE)) {
-      Serial.print(' ');
-      Serial.print(p->fileSize);
+      ser.print(' ');
+      ser.print(p->fileSize);
     }
-    Serial.println();
+    ser.println();
 
     // list subdirectory content if requested
     if ((flags & LS_R) && DIR_IS_SUBDIR(p)) {
       uint16_t index = curPosition()/32 - 1;
       SdFile s;
-      if (s.open(this, index, O_READ)) s.ls(flags, indent + 2);
+      if (s.open(this, index, O_READ)) s.ls(ser, flags, indent + 2);
       seekSet(32 * (index + 1));
     }
   }
@@ -582,23 +585,23 @@ uint8_t SdFile::openRoot(SdVolume* vol) {
  * \param[in] dir The directory structure containing the name.
  * \param[in] width Blank fill name if length is less than \a width.
  */
-void SdFile::printDirName(const dir_t& dir, uint8_t width) {
+void SdFile::printDirName(Stream &ser, const dir_t& dir, uint8_t width) {
   uint8_t w = 0;
   for (uint8_t i = 0; i < 11; i++) {
     if (dir.name[i] == ' ')continue;
     if (i == 8) {
-      Serial.print('.');
+      ser.print('.');
       w++;
     }
-    Serial.write(dir.name[i]);
+    ser.write(dir.name[i]);
     w++;
   }
   if (DIR_IS_SUBDIR(&dir)) {
-    Serial.print('/');
+    ser.print('/');
     w++;
   }
   while (w < width) {
-    Serial.print(' ');
+    ser.print(' ');
     w++;
   }
 }
@@ -609,12 +612,12 @@ void SdFile::printDirName(const dir_t& dir, uint8_t width) {
  *
  * \param[in] fatDate The date field from a directory entry.
  */
-void SdFile::printFatDate(uint16_t fatDate) {
-  Serial.print(FAT_YEAR(fatDate));
-  Serial.print('-');
-  printTwoDigits(FAT_MONTH(fatDate));
-  Serial.print('-');
-  printTwoDigits(FAT_DAY(fatDate));
+void SdFile::printFatDate(Stream &ser, uint16_t fatDate) {
+  ser.print(FAT_YEAR(fatDate));
+  ser.print('-');
+  printTwoDigits(ser, FAT_MONTH(fatDate));
+  ser.print('-');
+  printTwoDigits(ser, FAT_DAY(fatDate));
 }
 //------------------------------------------------------------------------------
 /** %Print a directory time field to Serial.
@@ -623,24 +626,24 @@ void SdFile::printFatDate(uint16_t fatDate) {
  *
  * \param[in] fatTime The time field from a directory entry.
  */
-void SdFile::printFatTime(uint16_t fatTime) {
-  printTwoDigits(FAT_HOUR(fatTime));
-  Serial.print(':');
-  printTwoDigits(FAT_MINUTE(fatTime));
-  Serial.print(':');
-  printTwoDigits(FAT_SECOND(fatTime));
+void SdFile::printFatTime(Stream &ser, uint16_t fatTime) {
+  printTwoDigits(ser, FAT_HOUR(fatTime));
+  ser.print(':');
+  printTwoDigits(ser, FAT_MINUTE(fatTime));
+  ser.print(':');
+  printTwoDigits(ser, FAT_SECOND(fatTime));
 }
 //------------------------------------------------------------------------------
 /** %Print a value as two digits to Serial.
  *
  * \param[in] v Value to be printed, 0 <= \a v <= 99
  */
-void SdFile::printTwoDigits(uint8_t v) {
+void SdFile::printTwoDigits(Stream &ser, uint8_t v) {
   char str[3];
   str[0] = '0' + v/10;
   str[1] = '0' + v % 10;
   str[2] = 0;
-  Serial.print(str);
+  ser.print(str);
 }
 //------------------------------------------------------------------------------
 /**
@@ -1250,4 +1253,84 @@ void SdFile::write_P(PGM_P str) {
 void SdFile::writeln_P(PGM_P str) {
   write_P(str);
   println();
+}
+
+
+bool SdFile::rename(SdFile* dirFile, const char* newPath) {
+  dir_t entry;
+  uint32_t dirCluster = 0;
+  SdFile file;
+  dir_t* d;
+
+  // must be an open file or subdirectory
+  if (!(isFile() || isSubDir())) goto fail;
+
+  // can't move file
+  if (vol_ != dirFile->vol_) goto fail;
+
+  // sync() and cache directory entry
+  sync();
+  d = cacheDirEntry(SdVolume::CACHE_FOR_WRITE);
+  if (!d) goto fail;
+
+  // save directory entry
+  memcpy(&entry, d, sizeof(entry));
+
+  // mark entry deleted
+  d->name[0] = DIR_NAME_DELETED;
+
+  // make directory entry for new path
+  if (isFile()) {
+    if (!file.open(dirFile, newPath, O_CREAT | O_EXCL | O_WRITE)) {
+      goto restore;
+    }
+  } else {
+    // don't create missing path prefix components
+    if (!file.makeDir(dirFile, newPath)) {
+      goto restore;
+    }
+    // save cluster containing new dot dot
+    dirCluster = file.firstCluster_;
+  }
+  // change to new directory entry
+  dirBlock_ = file.dirBlock_;
+  dirIndex_ = file.dirIndex_;
+
+  // mark closed to avoid possible destructor close call
+  file.type_ = FAT_FILE_TYPE_CLOSED;
+
+  // cache new directory entry
+  d = cacheDirEntry(SdVolume::CACHE_FOR_WRITE);
+  if (!d) goto fail;
+
+  // copy all but name field to new directory entry
+  memcpy(&d->attributes, &entry.attributes, sizeof(entry) - sizeof(d->name));
+
+  // update dot dot if directory
+  if (dirCluster) {
+    // get new dot dot
+    uint32_t block = vol_->clusterStartBlock(dirCluster);
+    if (!vol_->cacheRawBlock(block, SdVolume::CACHE_FOR_READ)) goto fail;
+    memcpy(&entry, &vol_->cacheBuffer_.dir[1], sizeof(entry));
+
+    // free unused cluster
+    if (!vol_->freeChain(dirCluster)) goto fail;
+
+    // store new dot dot
+    block = vol_->clusterStartBlock(firstCluster_);
+    if (!vol_->cacheRawBlock(block, SdVolume::CACHE_FOR_WRITE)) goto fail;
+    memcpy(&vol_->cacheBuffer_.dir[1], &entry, sizeof(entry));
+  }
+  return vol_->cacheFlush();
+
+ restore:
+  d = cacheDirEntry(SdVolume::CACHE_FOR_WRITE);
+  if (!d) goto fail;
+  // restore entry
+  d->name[0] = entry.name[0];
+  vol_->cacheFlush();
+
+ fail:
+  return false;
+
 }
