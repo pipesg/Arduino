@@ -18,3 +18,5 @@ make sanguino
 make mega
 make atmega88
 make luminet
+make atmega1284
+make atmega644
