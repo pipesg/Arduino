@@ -418,6 +418,64 @@ luminet_isp: LFUSE = 62
 luminet_isp: EFUSE = FE
 luminet_isp: isp
 
+atmega1284: TARGET = atmega1284p
+atmega1284: MCU_TARGET = atmega1284p
+atmega1284: CFLAGS += '-DLED_START_FLASHES=3' '-DBAUD_RATE=115200' '-DBIGBOOT'
+atmega1284: AVR_FREQ = 16000000L
+atmega1284: LDSECTIONS  = -Wl,--section-start=.text=0x1fc00
+atmega1284: $(PROGRAM)_atmega1284p.hex
+atmega1284: $(PROGRAM)_atmega1284p.lst
+
+atmega1284_isp: atmega1284
+atmega1284_isp: TARGET = atmega1284p
+atmega1284_isp: MCU_TARGET = atmega1284p
+# 1024 byte boot
+atmega1284_isp: HFUSE = DE
+# Low power xtal (16MHz) 16KCK/14CK+65ms
+atmega1284_isp: LFUSE = FF
+# 2.7V brownout
+atmega1284_isp: EFUSE = FD
+atmega1284_isp: isp
+
+atmega1284_slow: TARGET = atmega1284p_slow
+atmega1284_slow: MCU_TARGET = atmega1284p
+atmega1284_slow: CFLAGS += '-DLED_START_FLASHES=3' '-DBAUD_RATE=19200' '-DBIGBOOT'
+atmega1284_slow: AVR_FREQ = 16000000L
+atmega1284_slow: LDSECTIONS  = -Wl,--section-start=.text=0x1fc00
+atmega1284_slow: $(PROGRAM)_atmega1284p_slow.hex
+atmega1284_slow: $(PROGRAM)_atmega1284p_slow.lst
+
+atmega1284_slow_isp: atmega1284_slow
+atmega1284_slow_isp: TARGET = atmega1284p_slow
+atmega1284_slow_isp: MCU_TARGET = atmega1284p
+# 1024 byte boot
+atmega1284_slow_isp: HFUSE = DE
+# Low power xtal (16MHz) 16KCK/14CK+65ms
+atmega1284_slow_isp: LFUSE = FF
+# 2.7V brownout
+atmega1284_slow_isp: EFUSE = FD
+atmega1284_slow_isp: isp
+
+
+atmega644: TARGET = atmega644p
+atmega644: MCU_TARGET = atmega644p
+atmega644: CFLAGS += '-DLED_START_FLASHES=3' '-DBAUD_RATE=115200' '-DBIGBOOT'
+atmega644: AVR_FREQ = 16000000L
+atmega644: LDSECTIONS  = -Wl,--section-start=.text=0x1fc00
+atmega644: $(PROGRAM)_atmega644p.hex
+atmega644: $(PROGRAM)_atmega644p.lst
+
+atmega644_isp: atmega644
+atmega644_isp: TARGET = atmega644p
+atmega644_isp: MCU_TARGET = atmega644p
+# 1024 byte boot
+atmega644_isp: HFUSE = DE
+# Low power xtal (16MHz) 16KCK/14CK+65ms
+atmega644_isp: LFUSE = FF
+# 2.7V brownout
+atmega644_isp: EFUSE = FD
+atmega644_isp: isp
+
 #
 # Generic build instructions
 #
