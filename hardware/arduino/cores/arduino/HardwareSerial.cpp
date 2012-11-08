@@ -40,14 +40,14 @@
 #if (RAMEND < 1000)
   #define SERIAL_BUFFER_SIZE 16
 #else
-  #define SERIAL_BUFFER_SIZE 64
+  #define SERIAL_BUFFER_SIZE 128
 #endif
 
 struct ring_buffer
 {
   unsigned char buffer[SERIAL_BUFFER_SIZE];
-  volatile int head;
-  volatile int tail;
+  volatile unsigned int head;
+  volatile unsigned int tail;
 };
 
 #if defined(USBCON)
