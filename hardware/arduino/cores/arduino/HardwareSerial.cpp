@@ -24,6 +24,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <inttypes.h>
+#include <util/atomic.h>
 #include "Arduino.h"
 #include "wiring_private.h"
 
@@ -358,14 +359,17 @@ int HardwareSerial::peek(void)
 
 int HardwareSerial::read(void)
 {
-  // if the head isn't ahead of the tail, we don't have any characters
-  if (_rx_buffer->head == _rx_buffer->tail) {
-    return -1;
-  } else {
-    unsigned char c = _rx_buffer->buffer[_rx_buffer->tail];
-    _rx_buffer->tail = (_rx_buffer->tail + 1) % SERIAL_BUFFER_SIZE;
-    return c;
-  }
+  //ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+    // if the head isn't ahead of the tail, we don't have any characters
+    if (_rx_buffer->head == _rx_buffer->tail) {
+      return -1;
+    } else {
+      unsigned char c = _rx_buffer->buffer[_rx_buffer->tail];
+      _rx_buffer->buffer[_rx_buffer->tail] = 0;
+      _rx_buffer->tail = (_rx_buffer->tail + 1) % SERIAL_BUFFER_SIZE;
+      return c;
+    }
+  //}
 }
 
 void HardwareSerial::flush()
