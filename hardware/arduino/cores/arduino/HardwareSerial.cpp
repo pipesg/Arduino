@@ -46,8 +46,8 @@
 struct ring_buffer
 {
   unsigned char buffer[SERIAL_BUFFER_SIZE];
-  volatile unsigned int head;
-  volatile unsigned int tail;
+  volatile uint8_t head;
+  volatile uint8_t tail;
 };
 
 #if defined(USBCON)
@@ -73,7 +73,7 @@ struct ring_buffer
 
 inline void store_char(unsigned char c, ring_buffer *buffer)
 {
-  int i = (unsigned int)(buffer->head + 1) % SERIAL_BUFFER_SIZE;
+  uint8_t i = (buffer->head + 1) % SERIAL_BUFFER_SIZE;
 
   // if we should be storing the received character into the location
   // just before the tail (meaning that the head would advance to the
@@ -363,7 +363,7 @@ int HardwareSerial::read(void)
     return -1;
   } else {
     unsigned char c = _rx_buffer->buffer[_rx_buffer->tail];
-    _rx_buffer->tail = (unsigned int)(_rx_buffer->tail + 1) % SERIAL_BUFFER_SIZE;
+    _rx_buffer->tail = (_rx_buffer->tail + 1) % SERIAL_BUFFER_SIZE;
     return c;
   }
 }
@@ -376,13 +376,13 @@ void HardwareSerial::flush()
 
 bool HardwareSerial::writeable()
 {
-  int i = (_tx_buffer->head + 1) % SERIAL_BUFFER_SIZE;
+  const uint8_t i = (_tx_buffer->head + 1) % SERIAL_BUFFER_SIZE;
   return (i != _tx_buffer->tail);
 }
 
 size_t HardwareSerial::write(uint8_t c)
 {
-  int i = (_tx_buffer->head + 1) % SERIAL_BUFFER_SIZE;
+  const uint8_t i = (_tx_buffer->head + 1) % SERIAL_BUFFER_SIZE;
 	
   // If the output buffer is full, there's nothing for it other than to 
   // wait for the interrupt handler to empty it a bit
