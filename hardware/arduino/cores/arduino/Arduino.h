@@ -1,6 +1,10 @@
 #ifndef Arduino_h
 #define Arduino_h
 
+// JYD 20121115
+// #define __AVR_LIBC_DEPRECATED_ENABLE__ 1
+// #define __PROG_TYPES_COMPAT__ 1
+
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
@@ -45,7 +49,8 @@ extern "C"{
 #define EXTERNAL 1
 #define INTERNAL 2
 #else  
-#if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__)
+#if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__) || defined(__AVR_ATmega1284P__) || defined(__AVR_ATmega644P__)
+
 #define INTERNAL1V1 2
 #define INTERNAL2V56 3
 #else
