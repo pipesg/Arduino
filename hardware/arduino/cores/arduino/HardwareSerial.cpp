@@ -365,7 +365,7 @@ int HardwareSerial::read(void)
       return -1;
     } else {
       unsigned char c = _rx_buffer->buffer[_rx_buffer->tail];
-      _rx_buffer->buffer[_rx_buffer->tail] = 0;
+      _rx_buffer->buffer[_rx_buffer->tail] = '*';
       _rx_buffer->tail = (_rx_buffer->tail + 1) % SERIAL_BUFFER_SIZE;
       return c;
     }
